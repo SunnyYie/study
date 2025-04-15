@@ -1,0 +1,19 @@
+{
+  "name": "tools-monorepo",
+  "version": "1.0.0",
+  "description": "工具函数库集合",
+  "private": true,
+  "scripts": {
+    "test": "vitest",
+    "build": "lerna run build",
+    "lint": "eslint packages/*/src --ext .ts",
+    "format": "prettier --write \"packages/*/src/**/*.ts\""
+  },
+  "keywords": [
+    "utils",
+    "tools",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT"
+}

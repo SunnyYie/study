@@ -1,0 +1,27 @@
+{
+  "name": "@tools/array-utils",
+  "version": "0.1.0",
+  "description": "数组工具函数库",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "array",
+    "utils"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "vitest": "^3.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
+}
