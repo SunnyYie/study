@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>前端埋点SDK 示例</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+          'Helvetica Neue', sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .metrics {
+        background-color: #f5f5f5;
+      }
+      pre {
+        background-color: #f8f8f8;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+      button {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 10px 15px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        grid-gap: 15px;
+        margin-top: 20px;
+      }
+      .metric-item {
+        background-color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 15px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        margin-bottom: -1px;
+      }
+      .tab.active {
+        border: 1px solid #ddd;
+        border-bottom-color: white;
+        border-radius: 4px 4px 0 0;
+        background-color: white;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>前端埋点SDK 示例页面</h1>
+    <p>这是一个用于演示前端埋点SDK功能的示例页面。</p>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="basic-metrics">基础指标</div>
+      <div class="tab" data-tab="page-metrics">页面指标</div>
+      <div class="tab" data-tab="user-metrics">用户指标</div>
+      <div class="tab" data-tab="test-functions">测试功能</div>
+    </div>
+
+    <div class="tab-content active" id="basic-metrics">
+      <div class="card metrics">
+        <h2>当前基础指标:</h2>
+        <pre id="metricsDisplay"></pre>
+      </div>
+
+      <div class="metrics-grid" id="metricsGrid">
+        <!-- 指标卡片将在这里动态生成 -->
+      </div>
+    </div>
+
+    <div class="tab-content" id="page-metrics">
+      <div class="card">
+        <h2>页面指标</h2>
+        <p>不同页面的访问情况统计:</p>
+        <pre id="pageMetricsDisplay"></pre>
+      </div>
+    </div>
+
+    <div class="tab-content" id="user-metrics">
+      <div class="card">
+        <h2>用户指标</h2>
+        <div id="userMetrics">
+          <p>用户ID: <span id="userId"></span></p>
+          <p>是否新用户: <span id="isNewUser"></span></p>
+          <p>首次访问时间: <span id="firstVisitTime"></span></p>
+          <p>访问频次: <span id="visitFrequency"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="test-functions">
+      <h2>测试功能</h2>
+      <button id="trackButton">手动触发埋点</button>
+      <button id="showMetrics">显示当前指标</button>
+      <button id="trackPageAButton">模拟访问页面A</button>
+      <button id="trackPageBButton">模拟访问页面B</button>
+      <button id="simulateBounceButton">模拟跳出</button>
+    </div>
+
+    <script type="module">
+      // 导入SDK
+      import SDK from '../dist/bundle.js'
+
+      // 创建一个日志显示区域
+      const createLogArea = () => {
+        const logArea = document.createElement('div')
+        logArea.id = 'logArea'
+        logArea.className = 'card'
+        logArea.style.marginTop = '20px'
+        logArea.innerHTML = '<h3>埋点日志:</h3><div id="logs"></div>'
+        document.body.appendChild(logArea)
+        return document.getElementById('logs')
+      }
+
+      // 添加日志函数
+      const addLog = message => {
+        const logsDiv = document.getElementById('logs') || createLogArea()
+        const logEntry = document.createElement('p')
+        logEntry.style.margin = '5px 0'
+        logEntry.style.borderBottom = '1px solid #eee'
+        logEntry.style.paddingBottom = '5px'
+        logEntry.innerHTML = `<span style="color:#888">[${new Date().toLocaleTimeString()}]</span> ${message}`
+        logsDiv.appendChild(logEntry)
+        logsDiv.scrollTop = logsDiv.scrollHeight
+      }
+
+      // 将毫秒转换为友好的时间格式
+      const formatDuration = ms => {
+        if (ms < 1000) return `${ms.toFixed(0)}毫秒`
+        if (ms < 60000) return `${(ms / 1000).toFixed(1)}秒`
+        return `${(ms / 60000).toFixed(1)}分钟`
+      }
+
+      // 将时间戳转换为可读日期
+      const formatDate = timestamp => {
+        if (!timestamp) return '无记录'
+        return new Date(timestamp).toLocaleString()
+      }
+
+      // 创建指标卡片
+      const createMetricCard = (title, value, description) => {
+        const card = document.createElement('div')
+        card.className = 'metric-item'
+        card.innerHTML = `
+          <h3>${title}</h3>
+          <div style="font-size: 24px; font-weight: bold;">${value}</div>
+          <p style="color: #666; font-size: 14px;">${description}</p>
+        `
+        return card
+      }
+
+      // 更新指标网格
+      const updateMetricsGrid = metrics => {
+        const grid = document.getElementById('metricsGrid')
+        grid.innerHTML = ''
+
+        // 添加各个指标卡片
+        grid.appendChild(createMetricCard('页面浏览量 (PV)', metrics.pv, '总页面访问次数'))
+        grid.appendChild(createMetricCard('访客数 (UV)', metrics.uv, '不同访客数量'))
+        grid.appendChild(createMetricCard('平均停留时间', formatDuration(metrics.averageDuration), '用户平均访问时长'))
+        grid.appendChild(createMetricCard('跳出率', `${metrics.bounceRate.toFixed(1)}%`, '直接离开网站的访问比例'))
+        grid.appendChild(createMetricCard('访问频次', metrics.visitFrequency, '平均每个用户的访问次数'))
+
+        // 访问来源
+        const sourceCard = createMetricCard('主要来源', metrics.source || '直接访问', '用户的访问来源')
+        grid.appendChild(sourceCard)
+      }
+
+      // 更新页面指标
+      const updatePageMetrics = pagesMetrics => {
+        const display = document.getElementById('pageMetricsDisplay')
+        const formattedData = {}
+
+        // 格式化每个页面的数据，将时间格式化
+        Object.entries(pagesMetrics).forEach(([page, metrics]) => {
+          formattedData[page] = {
+            ...metrics,
+            averageDuration: formatDuration(metrics.averageDuration),
+          }
+        })
+
+        display.textContent = JSON.stringify(formattedData, null, 2)
+      }
+
+      // 更新用户指标
+      const updateUserMetrics = metrics => {
+        document.getElementById('userId').textContent = metrics.user?.userId || '未知'
+        document.getElementById('isNewUser').textContent = metrics.isNewUser ? '是' : '否'
+        document.getElementById('firstVisitTime').textContent = formatDate(metrics.firstVisitTime)
+        document.getElementById('visitFrequency').textContent = metrics.visitFrequency
+      }
+
+      // 标签切换功能
+      const initTabs = () => {
+        const tabs = document.querySelectorAll('.tab')
+        tabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            // 移除所有active类
+            tabs.forEach(t => t.classList.remove('active'))
+            document.querySelectorAll('.tab-content').forEach(content => {
+              content.classList.remove('active')
+            })
+
+            // 添加active类到当前标签
+            tab.classList.add('active')
+            const tabId = tab.getAttribute('data-tab')
+            document.getElementById(tabId).classList.add('active')
+          })
+        })
+      }
+
+      // 等待DOM加载完成
+      document.addEventListener('DOMContentLoaded', function () {
+        // 初始化标签切换
+        initTabs()
+
+        // 创建日志区域
+        createLogArea()
+        addLog('页面加载完成，SDK已初始化')
+
+        // 获取按钮元素
+        const trackButton = document.getElementById('trackButton')
+        const showMetricsButton = document.getElementById('showMetrics')
+        const metricsDisplay = document.getElementById('metricsDisplay')
+        const trackPageAButton = document.getElementById('trackPageAButton')
+        const trackPageBButton = document.getElementById('trackPageBButton')
+        const simulateBounceButton = document.getElementById('simulateBounceButton')
+
+        // 立即显示初始指标
+        try {
+          const metrics = SDK.getMetrics()
+          metricsDisplay.textContent = JSON.stringify(metrics, null, 2)
+          updateMetricsGrid(metrics)
+          updatePageMetrics(metrics.pagesMetrics || {})
+          updateUserMetrics(metrics)
+        } catch (error) {
+          addLog(`❌ 获取初始指标失败: ${error.message}`)
+        }
+
+        // 手动触发埋点按钮事件
+        trackButton.addEventListener('click', function () {
+          try {
+            addLog('正在记录PV...')
+            SDK.trackPV()
+            addLog('✅ PV记录成功')
+
+            addLog('正在记录UV...')
+            SDK.trackUV()
+            addLog('✅ UV记录成功')
+
+            addLog('正在记录页面访问: button-click-page')
+            SDK.trackPageVisit('button-click-page')
+            addLog('✅ 页面访问记录成功')
+
+            addLog('记录当前来源...')
+            SDK.trackSource()
+            addLog('✅ 来源记录成功')
+
+            // 显示更新后的指标
+            const metrics = SDK.getMetrics()
+            metricsDisplay.textContent = JSON.stringify(metrics, null, 2)
+            updateMetricsGrid(metrics)
+            updatePageMetrics(metrics.pagesMetrics || {})
+
+            alert('埋点数据已记录!')
+          } catch (error) {
+            addLog(`❌ 埋点失败: ${error.message}`)
+            console.error('埋点错误:', error)
+          }
+        })
+
+        // 显示当前指标按钮事件
+        showMetricsButton.addEventListener('click', function () {
+          try {
+            addLog('获取当前指标数据...')
+            const metrics = SDK.getMetrics()
+            metricsDisplay.textContent = JSON.stringify(metrics, null, 2)
+            updateMetricsGrid(metrics)
+            updatePageMetrics(metrics.pagesMetrics || {})
+            updateUserMetrics(metrics)
+            addLog('✅ 指标数据获取成功')
+          } catch (error) {
+            addLog(`❌ 获取指标失败: ${error.message}`)
+            console.error('获取指标错误:', error)
+          }
+        })
+
+        // 模拟访问页面A
+        trackPageAButton.addEventListener('click', function () {
+          try {
+            addLog('模拟访问页面A...')
+            SDK.trackPageVisit('/page-a')
+            SDK.trackPV('/page-a')
+            addLog('✅ 页面A访问记录成功')
+
+            // 更新显示
+            const metrics = SDK.getMetrics()
+            updatePageMetrics(metrics.pagesMetrics || {})
+          } catch (error) {
+            addLog(`❌ 页面A访问记录失败: ${error.message}`)
+          }
+        })
+
+        // 模拟访问页面B
+        trackPageBButton.addEventListener('click', function () {
+          try {
+            addLog('模拟访问页面B...')
+            SDK.trackPageVisit('/page-b')
+            SDK.trackPV('/page-b')
+            addLog('✅ 页面B访问记录成功')
+
+            // 更新显示
+            const metrics = SDK.getMetrics()
+            updatePageMetrics(metrics.pagesMetrics || {})
+          } catch (error) {
+            addLog(`❌ 页面B访问记录失败: ${error.message}`)
+          }
+        })
+
+        // 模拟跳出
+        simulateBounceButton.addEventListener('click', function () {
+          try {
+            addLog('模拟跳出行为...')
+            SDK.trackBounce()
+            addLog('✅ 跳出行为记录成功')
+
+            // 更新显示
+            const metrics = SDK.getMetrics()
+            metricsDisplay.textContent = JSON.stringify(metrics, null, 2)
+            updateMetricsGrid(metrics)
+          } catch (error) {
+            addLog(`❌ 跳出行为记录失败: ${error.message}`)
+          }
+        })
+      })
+    </script>
+  </body>
+</html>

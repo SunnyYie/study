@@ -1,0 +1,35 @@
+{
+  "name": "SDK",
+  "version": "1.0.0",
+  "description": "A front-end tracking SDK to record PV, UV, average stay time, bounce rate, page visit counts, and more.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "echo \"No tests specified\" && exit 0",
+    "start": "http-server . -c-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/your-repo.git"
+  },
+  "keywords": [
+    "tracking",
+    "analytics",
+    "sdk",
+    "frontend"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "devDependencies": {
+    "http-server": "^0.12.0",
+    "rollup": "^2.0.0",
+    "rollup-plugin-typescript2": "^0.30.0",
+    "typescript": "^4.0.0"
+  }
+}
