@@ -1,18 +1,26 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ES2015",
     "module": "ESNext",
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
-    "paths": {
-      "*": ["src/types/*"]
-    }
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
 }
