@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "optimize:images": "tsx scripts/optimizeImages.ts",
+    "optimize:images:dev": "tsx scripts/optimizeImages.ts --input src/assets/images --output src/assets/images/optimized",
+    "optimize:images:build": "tsx scripts/optimizeImages.ts --input src/assets/images --output public/images/optimized --formats webp,jpg",
+    "build:images": "npm run optimize:images:build && npm run build"
+  },
+  "devDependencies": {
+    "sharp": "^0.32.0",
+    "tsx": "^4.0.0",
+    "glob": "^10.0.0"
+  }
+}
