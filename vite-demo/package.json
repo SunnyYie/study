@@ -1,0 +1,30 @@
+{
+  "name": "vite-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "module": "dist/vite-demo.js",
+  "types": "dist/vite-demo.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/vite-demo.js",
+      "types": "./dist/vite-demo.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/uuid": "^10.0.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0"
+  }
+}
