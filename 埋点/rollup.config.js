@@ -1,4 +1,4 @@
-import typescript from 'rollup-plugin-typescript2';
+import typescript from 'rollup-plugin-typescript2'
 
 export default {
   input: 'src/index.ts',
@@ -7,18 +7,17 @@ export default {
       file: 'dist/index.js',
       format: 'umd',
       name: 'Analytics',
-      sourcemap: true
+      sourcemap: true,
     },
     {
       file: 'dist/index.esm.js',
       format: 'esm',
-      sourcemap: true
-    }
+      sourcemap: true,
+    },
   ],
   plugins: [
     typescript({
-      typescript: require('typescript'),
-      tsconfig: './tsconfig.json'
-    })
-  ]
-};
+      tsconfig: './tsconfig.json',
+    }),
+  ],
+}
