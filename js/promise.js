@@ -1,6 +1,158 @@
 // promise
+class MyPromise {
+  constructor(executor) {
+    this.state = 'pending'
+    this.value = undefined
+    this.reason = undefined
+    this.onResolvedCallbacks = []
+    this.onRejectedCallbacks = []
 
-// Promise.prototype.then
+    try {
+      executor(this.resolve.bind(this), this.reject.bind(this))
+    } catch (error) {
+      this.reject(error)
+    }
+  }
+
+  resolve(value) {
+    if (this.state === 'pending') {
+      this.state = 'fulfilled'
+      this.value = value
+      this.onResolvedCallbacks.forEach(fn => fn(value))
+    }
+  }
+
+  reject(reason) {
+    if (this.state === 'pending') {
+      this.state = 'rejected'
+      this.reason = reason
+      this.onRejectedCallbacks.forEach(fn => fn(reason))
+    }
+  }
+
+  then(onFulfilled, onRejected) {
+    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value
+    onRejected =
+      typeof onRejected === 'function'
+        ? onRejected
+        : reason => {
+            throw reason
+          }
+
+    const promise2 = new MyPromise((resolve, reject) => {
+      if (this.state === 'fulfilled') {
+        setTimeout(() => {
+          try {
+            const x = onFulfilled(this.value)
+            this.resolvePromise(promise2, x, resolve, reject)
+          } catch (error) {
+            reject(error)
+          }
+        }, 0)
+      } else if (this.state === 'rejected') {
+        setTimeout(() => {
+          try {
+            const x = onRejected(this.reason)
+            this.resolvePromise(promise2, x, resolve, reject)
+          } catch (error) {
+            reject(error)
+          }
+        }, 0)
+      } else if (this.state === 'pending') {
+        this.onResolvedCallbacks.push(() => {
+          setTimeout(() => {
+            try {
+              const x = onFulfilled(this.value)
+              this.resolvePromise(promise2, x, resolve, reject)
+            } catch (error) {
+              reject(error)
+            }
+          }, 0)
+        })
+        this.onRejectedCallbacks.push(() => {
+          setTimeout(() => {
+            try {
+              const x = onRejected(this.reason)
+              this.resolvePromise(promise2, x, resolve, reject)
+            } catch (error) {
+              reject(error)
+            }
+          }, 0)
+        })
+      }
+    })
+  }
+
+  all(promises) {
+    return new MyPromise((resolve, reject) => {
+      let result = []
+      let count = 0
+      promises.forEach((p, index) => {
+        MyPromise.resolve(p)
+          .then(value => {
+            result[index] = value
+            count++
+            if (count === promises.length) {
+              resolve(result)
+            }
+          })
+          .catch(reject)
+      })
+    })
+  }
+
+  allSettled(promises) {
+    return new MyPromise((resolve, reject) => {
+      let result = []
+      let count = 0
+      promises.forEach((p, index) => {
+        MyPromise.resolve(p)
+          .then(value => {
+            result[index] = { status: 'fulfilled', value }
+            count++
+            if (count === promises.length) {
+              resolve(result)
+            }
+          })
+          .catch(reason => {
+            result[index] = { status: 'rejected', reason }
+            count++
+            if (count === promises.length) {
+              resolve(result)
+            }
+          })
+      })
+    })
+  }
+
+  race(promises) {
+    return new MyPromise((resolve, reject) => {
+      promises.forEach(p => {
+        MyPromise.resolve(p).then(resolve).catch(reject)
+      })
+    })
+  }
+
+  any(promises) {
+    return new MyPromise((resolve, reject) => {
+      let reasons = []
+      let count = 0
+      promises.forEach((p, index) => {
+        MyPromise.resolve(p)
+          .then(value => {
+            resolve(value)
+          })
+          .catch(reason => {
+            reasons[index] = reason
+            count++
+            if (count === promises.length) {
+              reject(new AggregateError(reasons, 'All promises were rejected'))
+            }
+          })
+      })
+    })
+  }
+}
 
 // promise.all
 
