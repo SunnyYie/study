@@ -154,16 +154,43 @@ class MyPromise {
   }
 }
 
-// promise.all
-
 // 手写带并发限制的 Promise 调度器
+class Scheduler {
+  constructor(limit) {
+    this.limit = limit // 最大并发数
+    this.queue = [] // 任务队列
+    this.activeCount = 0 // 当前活跃的任务数
+  }
+
+  add(task) {
+    this.queue.push(task)
+  }
+
+  run() {
+    while (this.activeCount < this.limit && this.queue.length) {
+      const task = this.queue.shift()
+      this.activeCount++
+      task().then(() => {
+        this.activeCount--
+        this.run() // 任务完成后继续执行下一个任务
+      })
+    }
+  }
+}
+
 const scheduler = new Scheduler(2) // 最多同时运行2个任务
 const addTask = (time, value) => {
-  scheduler.add(() => new Promise(resolve => setTimeout(resolve, time, value)))
+  scheduler.add(() => new Promise(resolve => {
+    setTimeout(() => {
+      console.log(value)
+      resolve()
+    }, time)
+  }))
 }
 addTask(1000, '1')
 addTask(500, '2')
 addTask(300, '3')
 addTask(400, '4')
+scheduler.run()
 // 输出结果: 2 3 1 4
 // 解释: 2 和 3 最先被执行，然后是 1，最后是 4
