@@ -26,3 +26,12 @@ function myApply(context, args) {
   delete context[fn];
   return result;
 }
+
+// bind
+function myBind(context, ...args) {
+  const self = this;
+  return function (...newArgs) {
+    const finalArgs = args.concat(newArgs);
+    return self.apply(context, finalArgs);
+  };
+}

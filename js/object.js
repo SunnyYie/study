@@ -8,6 +8,14 @@ function myNew(constructor, ...args) {
   return (typeof result === 'object' && result !== null) ? result : obj;
 }
 
+// object.create
+function myObjectCreate(proto) {
+  function F() { }
+  F.prototype = proto;
+  const obj = new F();
+  return obj;
+}
+
 // 遍历
 function Parent() {
   this.name = 'parent'
