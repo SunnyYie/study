@@ -1,21 +1,3 @@
-// instanceof
-
-// new
-function myNew(constructor, ...args) {
-  if (typeof constructor !== 'function') { throw new Error('Invalid constructor'); }
-  const obj = Object.create(constructor.prototype);
-  const result = constructor.apply(obj, args);
-  return (typeof result === 'object' && result !== null) ? result : obj;
-}
-
-// object.create
-function myObjectCreate(proto) {
-  function F() { }
-  F.prototype = proto;
-  const obj = new F();
-  return obj;
-}
-
 // 遍历
 function Parent() {
   this.name = 'parent'

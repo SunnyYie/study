@@ -133,6 +133,7 @@ class MyPromise {
     })
   }
 
+  // 状态为成功或失败都继续,如果全部失败则抛出错误
   any(promises) {
     return new MyPromise((resolve, reject) => {
       let reasons = []

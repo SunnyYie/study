@@ -1,8 +1,5 @@
 // call
 function myCall(context, ...args) {
-  if (context == null) {
-    context = window;
-  }
   const fn = Symbol('fn');
   context[fn] = this;
   const result = context[fn](...args);
@@ -12,9 +9,6 @@ function myCall(context, ...args) {
 
 // apply
 function myApply(context, args) {
-  if (context == null) {
-    context = window;
-  }
   const fn = Symbol('fn');
   context[fn] = this;
   let result;
@@ -31,7 +25,6 @@ function myApply(context, args) {
 function myBind(context, ...args) {
   const self = this;
   return function (...newArgs) {
-    const finalArgs = args.concat(newArgs);
-    return self.apply(context, finalArgs);
+    return self.apply(context, [...args, ...newArgs]);
   };
 }
