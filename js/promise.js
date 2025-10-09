@@ -195,3 +195,18 @@ addTask(400, '4')
 scheduler.run()
 // 输出结果: 2 3 1 4
 // 解释: 2 和 3 最先被执行，然后是 1，最后是 4
+
+// async await
+function handleAwait(promise) {
+  return promise.then(result => {
+    // 如果结果是一个Promise，继续处理
+    if (result instanceof Promise) {
+      return handleAwait(result);
+    }
+    // 如果结果是一个生成器，执行它
+    if (typeof result.next === 'function') {
+      return executeGenerator(result);
+    }
+    return result;
+  });
+}
