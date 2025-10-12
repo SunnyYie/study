@@ -155,6 +155,25 @@ class MyPromise {
   }
 }
 
+// Promise.resolve
+MyPromise.resolve = function (value) {
+  if (value instanceof MyPromise) {
+    return value
+  } else if (value && typeof value === 'object' && typeof value.then === 'function') {
+    return new MyPromise((resolve, reject) => {
+      value.then(resolve, reject)
+    })
+  } else {
+    return new MyPromise(resolve => resolve(value))
+  }
+}
+// Promise.reject
+MyPromise.reject = function (reason) {
+  return new MyPromise((resolve, reject) => {
+    reject(reason)
+  })
+}
+
 // 手写带并发限制的 Promise 调度器
 class Scheduler {
   constructor(limit) {
@@ -181,12 +200,15 @@ class Scheduler {
 
 const scheduler = new Scheduler(2) // 最多同时运行2个任务
 const addTask = (time, value) => {
-  scheduler.add(() => new Promise(resolve => {
-    setTimeout(() => {
-      console.log(value)
-      resolve()
-    }, time)
-  }))
+  scheduler.add(
+    () =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          console.log(value)
+          resolve()
+        }, time)
+      }),
+  )
 }
 addTask(1000, '1')
 addTask(500, '2')
@@ -201,12 +223,38 @@ function handleAwait(promise) {
   return promise.then(result => {
     // 如果结果是一个Promise，继续处理
     if (result instanceof Promise) {
-      return handleAwait(result);
+      return handleAwait(result)
     }
     // 如果结果是一个生成器，执行它
     if (typeof result.next === 'function') {
-      return executeGenerator(result);
+      return executeGenerator(result)
     }
-    return result;
-  });
+    return result
+  })
 }
+
+// sleep
+const sleep = ms => {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// delay
+function delay(func, seconds, ...args) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(func(...args))
+    }, seconds)
+  })
+}
+
+async function test() {
+  // 在 3s 之后返回 hello, world
+  await delay(
+    str => {
+      console.log(str)
+    },
+    3000,
+    'hello, world',
+  )
+}
+test()

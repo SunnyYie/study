@@ -55,3 +55,46 @@ const objectHasOwn = (function () {
   console.log(Object.prototype.hasOwnProperty.call(child, 'name')) // false
   console.log(Object.prototype.hasOwnProperty.call(child, 'type')) // true
 })()
+
+// 对象扁平化
+const obj = {
+  a: 1,
+  b: {
+    c: 2,
+    d: {
+      e: 3,
+    },
+  },
+  f: 4,
+}
+
+const objectFlatten = (obj, prefix = '', res = {}) => {
+  for (const key in obj) {
+    const value = obj[key]
+    const newKey = prefix ? `${prefix}.${key}` : key
+    if (typeof value === 'object' && value !== null) {
+      objectFlatten(value, newKey, res)
+    } else {
+      res[newKey] = value
+    }
+  }
+  return res
+}
+console.log(objectFlatten(obj)) // { 'a': 1, 'b.c': 2, 'b.d.e': 3, 'f': 4 }
+
+// 检查对象是否为空
+const objectIsEmpty = obj => {
+  return Object.keys(obj).length === 0
+}
+
+// 冻结对象
+const objectDeepFreeze = obj => {
+  Object.freeze(obj)
+  for (const key in obj) {
+    const value = obj[key]
+    if (typeof value === 'object' && value !== null && !Object.isFrozen(value)) {
+      objectDeepFreeze(value)
+    }
+  }
+  return obj
+}

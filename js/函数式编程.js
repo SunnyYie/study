@@ -6,7 +6,7 @@ const curry = fn => {
       return fn.apply(this, args)
     } else {
       return function (...args2) {
-        return curried.apply(this, args.concat(args2))
+        return curried.apply(this, [...args, ...args2])
       }
     }
   }
@@ -19,6 +19,42 @@ function add(a, b, c) {
 const curriedAdd = curry(add)
 console.log(curriedAdd(1)(2)(3)) // 6
 console.log(curriedAdd(1, 2)(3)) // 6
+
+// unCurry
+const unCurry = fn => {
+  return function (...args) {
+    let context = args[0]
+    let func = fn
+    for (let i = 1; i < args.length; i++) {
+      func = func.call(context, args[i])
+      context = func
+    }
+    return func
+  }
+}
+const unCurryedAdd = unCurry(curriedAdd)
+console.log(unCurryedAdd(null, 1, 2, 3)) // 6
+
+// 函数缓存
+const memoize = fn => {
+  const cache = new Map()
+  return function (...args) {
+    const key = JSON.stringify(args)
+    if (cache.has(key)) {
+      return cache.get(key)
+    } else {
+      const result = fn.apply(this, args)
+      cache.set(key, result)
+      return result
+    }
+  }
+}
+const factorial = memoize(function (n) {
+  if (n <= 1) return 1
+  return n * factorial(n - 1)
+})
+console.log(factorial(5)) // 120
+console.log(factorial(6)) // 720, 计算 6! 时会复用 5! 的结果
 
 // 浅拷贝
 const arrayShallowClone = obj => {
@@ -59,57 +95,6 @@ const obj2 = { a: 1, b: { c: 2 } }
 const newObj2 = arrayDeepClone(obj2)
 newObj2.b.c = 3
 console.log(obj2.b.c) // 2
-
-// 防抖
-const debounce = (func, wait) => {
-  let timeout
-  return function (...args) {
-    const context = this
-    clearTimeout(timeout)
-    timeout = setTimeout(() => {
-      func.apply(context, args)
-    }, wait)
-  }
-}
-
-// 节流
-const throttle = (func, wait) => {
-  let lastTime = 0
-  return function (...args) {
-    const context = this
-    const now = Date.now()
-    if (now - lastTime >= wait) {
-      lastTime = now
-      func.apply(context, args)
-    }
-  }
-}
-
-// sleep
-const sleep = ms => {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-// delay
-function delay(func, seconds, ...args) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(func(...args))
-    }, seconds)
-  })
-}
-
-async function test() {
-  // 在 3s 之后返回 hello, world
-  await delay(
-    str => {
-      console.log(str)
-    },
-    3000,
-    'hello, world',
-  )
-}
-test()
 
 // 深比较
 const deepEqual = (key1, key2) => {

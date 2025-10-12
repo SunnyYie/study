@@ -45,7 +45,6 @@ eventEmitter.once('onceEvent', msg => {
 eventEmitter.emit('onceEvent', 'Hello Once!') // 收到一次性消息：Hello Once!
 eventEmitter.emit('onceEvent', 'Hello Once Again!') // 无输出
 
-
 // LRU缓存
 class LRUCache {
   constructor(capacity) {
@@ -83,3 +82,21 @@ lru.put(4, 4) // 该操作会使得 key 1 被淘汰
 lru.get(1) // 返回 -1 (未找到)
 lru.get(3) // 返回 3
 lru.get(4) // 返回 4
+
+// 观察者模式
+const observe = (obj, callback) => {
+  return new Proxy(obj, {
+    set(target, property, value) {
+      target[property] = value
+      callback(property, value)
+      return true
+    },
+  })
+}
+
+const person = observe({ name: 'Alice', age: 25 }, (prop, val) => {
+  console.log(`属性 ${prop} 改变为 ${val}`)
+})
+
+person.name = 'Bob' // 属性 name 改变为 Bob
+person.age = 26 // 属性 age 改变为 26

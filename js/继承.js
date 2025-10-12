@@ -30,9 +30,9 @@ function Dog(name, age) {
 
 // 继承原型的方法
 Dog.prototype = myObjectCreate(Animal.prototype)
-Dog.prototype.constructor = Dog // 修正构造函数指向
+Dog.prototype.constructor = Dog 
 
 const dog = myNew(Dog, '旺财', 3)
 console.log(dog) // Dog { name: '旺财', sleep: [Function (anonymous)], age: 3 }
 
-dog.eat('骨头') 
+dog.eat('骨头')

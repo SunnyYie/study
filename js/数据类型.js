@@ -1,5 +1,3 @@
-// 数据类型判断
-
 const func = (obj, funcName) => {
   // 判断是不是对象
   if (typeof obj !== 'object' || obj === null) return false
@@ -16,3 +14,13 @@ const func = (obj, funcName) => {
 }
 
 console.log(func([], Array)) // true
+
+const getType = obj => {
+  return Object.prototype.toString.call(obj).slice(8, -1)
+}
+
+console.log(getType([])) // Array;
+
+const isArray = obj => {
+  return getType(obj) === 'Array'
+}

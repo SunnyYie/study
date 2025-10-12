@@ -71,3 +71,13 @@ const arrayEvery = (arr, predicate) => {
   }
   return true
 }
+
+// find
+const arrayFind = (arr, predicate) => {
+  for (let i = 0; i < arr.length; i++) {
+    if (predicate(arr[i], i, arr)) {
+      return arr[i]
+    }
+  }
+  return undefined
+}
