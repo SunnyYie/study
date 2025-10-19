@@ -1,178 +1,309 @@
-// promise
-class MyPromise {
-  constructor(executor) {
-    this.state = 'pending'
-    this.value = undefined
-    this.reason = undefined
-    this.onResolvedCallbacks = []
-    this.onRejectedCallbacks = []
+// 决议过程：处理Promise的状态转换（核心逻辑，遵循Promise/A+规范2.3）
+function resolvePromise(promise, x, resolve, reject) {
+  // 若x与当前promise是同一个对象，直接拒绝（防止循环引用）
+  if (promise === x) {
+    return reject(new TypeError('Chaining cycle detected for promise'))
+  }
 
+  // 若x是当前实现的Promise实例
+  if (x instanceof Promise) {
+    // 等待x的状态改变，用其结果决议当前promise
+    x.then(
+      value => resolvePromise(promise, value, resolve, reject),
+      reason => reject(reason),
+    )
+    return
+  }
+
+  // 若x是对象或函数（可能是thenable）
+  if (x !== null && (typeof x === 'object' || typeof x === 'function')) {
+    let then
     try {
-      executor(this.resolve.bind(this), this.reject.bind(this))
-    } catch (error) {
-      this.reject(error)
+      then = x.then // 尝试获取x的then方法
+    } catch (e) {
+      // 获取then失败，直接拒绝
+      return reject(e)
     }
-  }
 
-  resolve(value) {
-    if (this.state === 'pending') {
-      this.state = 'fulfilled'
+    // 若then是函数（认定为thenable）
+    if (typeof then === 'function') {
+      let called = false // 防止then方法多次调用resolve/reject
+      try {
+        then.call(
+          x, // 以x为this调用then
+          y => {
+            // then的onFulfilled回调
+            if (called) return
+            called = true
+            resolvePromise(promise, y, resolve, reject) // 递归处理y
+          },
+          r => {
+            // then的onRejected回调
+            if (called) return
+            called = true
+            reject(r) // 直接拒绝
+          },
+        )
+      } catch (e) {
+        if (called) return
+        called = true
+        reject(e) // 执行then时出错，直接拒绝
+      }
+    } else {
+      // then不是函数，直接以x为值完成
+      resolve(x)
+    }
+  } else {
+    // x是基本类型，直接以x为值完成
+    resolve(x)
+  }
+}
+
+function MyPromise(executor) {
+  this.status = 'pending' // 状态：pending/fulfilled/rejected（初始为pending）
+  this.value = undefined // fulfilled状态的结果值
+  this.reason = undefined // rejected状态的原因
+  this.onFulfilledCallbacks = [] // 存储fulfilled状态的回调（状态未改变时）
+  this.onRejectedCallbacks = [] // 存储rejected状态的回调（状态未改变时）
+
+  // 内部实现：将状态改为fulfilled并执行回调
+  const fulfill = value => {
+    if (this.status === 'pending') {
+      this.status = 'fulfilled'
       this.value = value
-      this.onResolvedCallbacks.forEach(fn => fn(value))
+      // 异步执行所有存储的fulfilled回调（微任务）
+      this.onFulfilledCallbacks.forEach(cb => queueMicrotask(cb))
     }
   }
 
-  reject(reason) {
-    if (this.state === 'pending') {
-      this.state = 'rejected'
+  // 内部实现：将状态改为rejected并执行回调
+  const reject = reason => {
+    if (this.status === 'pending') {
+      this.status = 'rejected'
       this.reason = reason
-      this.onRejectedCallbacks.forEach(fn => fn(reason))
+      // 异步执行所有存储的rejected回调（微任务）
+      this.onRejectedCallbacks.forEach(cb => queueMicrotask(cb))
     }
   }
 
-  then(onFulfilled, onRejected) {
-    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value
-    onRejected =
-      typeof onRejected === 'function'
-        ? onRejected
-        : reason => {
-            throw reason
-          }
+  // 供executor调用的resolve方法（触发决议过程）
+  const resolve = value => {
+    resolvePromise(this, value, fulfill, reject)
+  }
 
-    const promise2 = new MyPromise((resolve, reject) => {
-      if (this.state === 'fulfilled') {
-        setTimeout(() => {
+  // 立即执行executor，捕获执行中的错误
+  try {
+    executor(resolve, reject)
+  } catch (e) {
+    reject(e) // 执行出错直接拒绝
+  }
+}
+
+// then方法（核心API，返回新Promise支持链式调用）
+MyPromise.prototype.then = function (onFulfilled, onRejected) {
+  // 处理非函数参数（忽略，透传值/抛出错误）
+  onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value
+  onRejected =
+    typeof onRejected === 'function'
+      ? onRejected
+      : reason => {
+          throw reason
+        }
+
+  // 返回新的Promise（then的返回值）
+  const promise2 = new MyPromise((resolve, reject) => {
+    // 状态为fulfilled时：异步执行onFulfilled
+    if (this.status === 'fulfilled') {
+      queueMicrotask(() => {
+        try {
+          const x = onFulfilled(this.value) // 执行回调获取结果
+          resolvePromise(promise2, x, resolve, reject) // 决议新Promise
+        } catch (e) {
+          reject(e) // 回调执行出错，直接拒绝新Promise
+        }
+      })
+    }
+
+    // 状态为rejected时：异步执行onRejected
+    if (this.status === 'rejected') {
+      queueMicrotask(() => {
+        try {
+          const x = onRejected(this.reason) // 执行回调获取结果
+          resolvePromise(promise2, x, resolve, reject) // 决议新Promise
+        } catch (e) {
+          reject(e) // 回调执行出错，直接拒绝新Promise
+        }
+      })
+    }
+
+    // 状态为pending时：存储回调（等待状态改变后执行）
+    if (this.status === 'pending') {
+      this.onFulfilledCallbacks.push(() => {
+        queueMicrotask(() => {
           try {
             const x = onFulfilled(this.value)
-            this.resolvePromise(promise2, x, resolve, reject)
-          } catch (error) {
-            reject(error)
+            resolvePromise(promise2, x, resolve, reject)
+          } catch (e) {
+            reject(e)
           }
-        }, 0)
-      } else if (this.state === 'rejected') {
-        setTimeout(() => {
+        })
+      })
+
+      this.onRejectedCallbacks.push(() => {
+        queueMicrotask(() => {
           try {
             const x = onRejected(this.reason)
-            this.resolvePromise(promise2, x, resolve, reject)
-          } catch (error) {
-            reject(error)
+            resolvePromise(promise2, x, resolve, reject)
+          } catch (e) {
+            reject(e)
           }
-        }, 0)
-      } else if (this.state === 'pending') {
-        this.onResolvedCallbacks.push(() => {
-          setTimeout(() => {
-            try {
-              const x = onFulfilled(this.value)
-              this.resolvePromise(promise2, x, resolve, reject)
-            } catch (error) {
-              reject(error)
-            }
-          }, 0)
         })
-        this.onRejectedCallbacks.push(() => {
-          setTimeout(() => {
-            try {
-              const x = onRejected(this.reason)
-              this.resolvePromise(promise2, x, resolve, reject)
-            } catch (error) {
-              reject(error)
-            }
-          }, 0)
-        })
-      }
-    })
-  }
-
-  all(promises) {
-    return new MyPromise((resolve, reject) => {
-      let result = []
-      let count = 0
-      promises.forEach((p, index) => {
-        MyPromise.resolve(p)
-          .then(value => {
-            result[index] = value
-            count++
-            if (count === promises.length) {
-              resolve(result)
-            }
-          })
-          .catch(reject)
       })
-    })
-  }
+    }
+  })
 
-  allSettled(promises) {
-    return new MyPromise((resolve, reject) => {
-      let result = []
-      let count = 0
-      promises.forEach((p, index) => {
-        MyPromise.resolve(p)
-          .then(value => {
-            result[index] = { status: 'fulfilled', value }
-            count++
-            if (count === promises.length) {
-              resolve(result)
-            }
-          })
-          .catch(reason => {
-            result[index] = { status: 'rejected', reason }
-            count++
-            if (count === promises.length) {
-              resolve(result)
-            }
-          })
-      })
-    })
-  }
-
-  race(promises) {
-    return new MyPromise((resolve, reject) => {
-      promises.forEach(p => {
-        MyPromise.resolve(p).then(resolve).catch(reject)
-      })
-    })
-  }
-
-  // 状态为成功或失败都继续,如果全部失败则抛出错误
-  any(promises) {
-    return new MyPromise((resolve, reject) => {
-      let reasons = []
-      let count = 0
-      promises.forEach((p, index) => {
-        MyPromise.resolve(p)
-          .then(value => {
-            resolve(value)
-          })
-          .catch(reason => {
-            reasons[index] = reason
-            count++
-            if (count === promises.length) {
-              reject(new AggregateError(reasons, 'All promises were rejected'))
-            }
-          })
-      })
-    })
-  }
+  return promise2
 }
 
-// Promise.resolve
-MyPromise.resolve = function (value) {
-  if (value instanceof MyPromise) {
+// 静态方法：Promise.resolve（返回一个以value为结果的fulfilled状态Promise）
+Promise.resolve = function (value) {
+  // 若value是当前Promise实例，直接返回
+  if (value instanceof Promise) {
     return value
-  } else if (value && typeof value === 'object' && typeof value.then === 'function') {
-    return new MyPromise((resolve, reject) => {
-      value.then(resolve, reject)
-    })
-  } else {
-    return new MyPromise(resolve => resolve(value))
   }
+  // 否则返回新Promise，用value决议
+  return new Promise(resolve => resolve(value))
 }
-// Promise.reject
-MyPromise.reject = function (reason) {
-  return new MyPromise((resolve, reject) => {
-    reject(reason)
+
+// 静态方法：Promise.reject（返回一个以reason为原因的rejected状态Promise）
+Promise.reject = function (reason) {
+  return new Promise((_, reject) => reject(reason))
+}
+
+Promise.prototype.catch = function (onRejected) {
+  return this.then(null, onRejected)
+}
+
+Promise.prototype.finally = function (callback) {
+  return this.then(
+    value => {
+      return Promise.resolve(callback()).then(() => value)
+    },
+    reason => {
+      return Promise.resolve(callback()).then(() => {
+        throw reason
+      })
+    },
+  )
+}
+
+Promise.all = function (promises) {
+  return new Promise((resolve, reject) => {
+    const results = []
+    let completed = 0
+    promises.forEach((p, index) => {
+      Promise.resolve(p)
+        .then(value => {
+          results[index] = value
+          completed++
+          if (completed === promises.length) {
+            resolve(results)
+          }
+        })
+        .catch(reject)
+    })
   })
 }
+
+Promise.race = function (promises) {
+  return new Promise((resolve, reject) => {
+    promises.forEach(p => {
+      Promise.resolve(p).then(resolve, reject)
+    })
+  })
+}
+
+// Promise.allSettled
+Promise.allSettled = function (promises) {
+  return new Promise(resolve => {
+    const results = []
+    let completed = 0
+    promises.forEach((p, index) => {
+      Promise.resolve(p)
+        .then(value => {
+          results[index] = { status: 'fulfilled', value }
+        })
+        .catch(reason => {
+          results[index] = { status: 'rejected', reason }
+        })
+        .finally(() => {
+          completed++
+          if (completed === promises.length) {
+            resolve(results)
+          }
+        })
+    })
+  })
+}
+
+Promise.any = function (promises) {
+  return new Promise((resolve, reject) => {
+    const errors = []
+    let rejectedCount = 0
+    promises.forEach((p, index) => {
+      Promise.resolve(p)
+        .then(value => {
+          resolve(value)
+        })
+        .catch(reason => {
+          errors[index] = reason
+          rejectedCount++
+          if (rejectedCount === promises.length) {
+            reject(new AggregateError(errors, 'All promises were rejected'))
+          }
+        })
+    })
+  })
+}
+function multiRequestLimitNum(reqArr, limitNum) {
+  return new Promise((resolve, reject) => {
+    let curIndex = 0,
+      result = [],
+      inProgressCount = 0
+    const run = () => {
+      if (curIndex >= reqArr.length && inProgressCount === 0) {
+        resolve(result)
+        return
+      }
+      while (inProgressCount <= limitNum && curIndex < reqArr.length) {
+        const index = curIndex
+        const curItem = reqArr[index]
+        curIndex++
+        inProgressCount++
+        curItem()
+          .then(res => {
+            result[index] = res
+          })
+          .finally(() => {
+            inProgressCount--
+            run()
+          })
+      }
+    }
+    run()
+  })
+}
+
+const reqArr = [
+  () => new Promise(res => setTimeout(() => res(1), 3000)),
+  () => new Promise(res => setTimeout(() => res(2), 2000)),
+  () => new Promise(res => setTimeout(() => res(3), 1000)),
+  () => new Promise(res => setTimeout(() => res(4), 4000)),
+  () => new Promise(res => setTimeout(() => res(5), 500)),
+]
+multiRequestLimitNum(reqArr, 2).then(res => {
+  console.log(res) // [1,2,3,4,5]
+})
 
 // 手写带并发限制的 Promise 调度器
 class Scheduler {

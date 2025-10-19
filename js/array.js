@@ -41,6 +41,10 @@ const arrayFlat = arr => {
   return result
 }
 
+const arrayFlat2 = arr => {
+  return arr.reduce((acc, val) => acc.concat(Array.isArray(val) ? arrayFlat2(val) : val), [])
+}
+
 // 去重
 const arrayUnique = arr => [...new Set(arr)]
 
