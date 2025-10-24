@@ -59,3 +59,39 @@ function func(s) {
 }
 
 console.log(func('226'))
+
+// 二分查找
+function binarySearch(arr, target) {
+  let left = 0
+  let right = arr.length - 1
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2)
+    if (arr[mid] === target) {
+      return mid
+    } else if (arr[mid] < target) {
+      left = mid + 1
+    } else {
+      right = mid - 1
+    }
+  }
+  return -1 // 未找到目标值
+}
+
+// 如果存在多个目标值，返回第一个出现的索引
+function binarySearchFirst(arr, target) {
+  let left = 0
+  let right = arr.length - 1
+  let result = -1
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2)
+    if (arr[mid] === target) {
+      result = mid
+      right = mid - 1 // 继续向左搜索
+    } else if (arr[mid] < target) {
+      left = mid + 1
+    } else {
+      right = mid - 1
+    }
+  }
+  return result
+}
